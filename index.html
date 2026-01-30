@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nnouse Store</title>
+<style>
+:root{--beige:#f3efe8;--gold:#c9a24d;--white:#ffffff;--text:#333}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial, sans-serif}
+body{background:var(--beige);color:var(--text);min-height:100vh}
+.page{display:none;padding:30px 20px}
+.page.active{display:block}
+
+/* الصفحة الأولى */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+.hero h1{font-size:28px;margin-bottom:15px}
+.hero p{font-size:14px;max-width:320px;margin-bottom:30px;opacity:.85}
+.enter-btn{background:var(--gold);color:white;border:none;padding:14px 28px;font-size:16px;border-radius:8px;cursor:pointer}
+
+/* الصفحة الثانية */
+.store-header{position:relative;text-align:center;margin-bottom:20px}
+
+/* زر الأدمن (الدخول) */
+.admin-btn{position:absolute;left:10px;top:10px;padding:8px 12px;font-size:13px;border-radius:8px;border:none;background:#fff;cursor:pointer;box-shadow:0 1px 6px rgba(0,0,0,0.06)}
+
+/* زر العودة */
+.back-btn{position:absolute;top:10px;right:10px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;border:none;background:var(--white);color:var(--text);box-shadow:0 1px 6px rgba(0,0,0,0.08);cursor:pointer;padding:0}
+.back-btn svg{ width:20px; height:20px; display:block }
+
+/* حاوية زر الحفظ والنشر (الجديد) */
+.save-bar-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 15px;
+  width: 100%;
+}
+
+.publish-btn {
+  background: var(--gold);
+  color: white;
+  border: none;
+  padding: 10px 30px;
+  font-size: 15px;
+  font-weight: bold;
+  border-radius: 25px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(201, 162, 77, 0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.publish-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(201, 162, 77, 0.6);
+}
+.publish-btn:active {
+  transform: translateY(0);
+}
+
+/* الشبكة والبطاقات */
+.grid{
+  display:grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap:16px;
+  max-width: calc(4 * 220px + 3 * 16px);
+  margin:0 auto;
+}
+@media (max-width:1200px){ .grid{ grid-template-columns: repeat(3, minmax(140px, 1fr)); max-width: calc(3 * 220px + 2 * 16px); } }
+@media (max-width:900px){ .grid{ grid-template-columns: repeat(2, minmax(140px, 1fr)); max-width: calc(2 * 220px + 1 * 16px); } }
+@media (max-width:500px){ .grid{ grid-template-columns: repeat(1, minmax(140px, 1fr)); max-width:100%; padding:0 12px; } }
+
+.card{background:var(--white);border-radius:10px;padding:12px;min-height:160px;display:flex;flex-direction:column;justify-content:space-between;position:relative;transition:transform .12s, box-shadow .12s}
+.card.show-controls{ transform:translateY(-6px); box-shadow:0 12px 30px rgba(0,0,0,0.12); }
+.card.dragging{opacity:.4;transform:scale(.98);box-shadow:0 20px 40px rgba(0,0,0,0.14)}
+
+.work-box{flex:1;border:1px dashed #ccc;border-radius:6px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;min-height:260px;background-size:contain;background-position:center;cursor:default;position:relative;overflow:hidden}
+.work-box.has-img{border-style:solid;border-color:#eee}
+.work-box img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;display:block}
+
+/* تحكمات الصورة */
+.wb-controls{position:absolute;top:8px;left:8px;display:flex;gap:8px;z-index:2;
+  opacity:0; transform:translateY(-6px); pointer-events:none; transition:opacity .12s, transform .12s;
+}
+.card.show-controls .wb-controls{ opacity:1; transform:translateY(0); pointer-events:auto; }
+
+.wb-controls button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,0.06);background:#fff;color:var(--text);cursor:pointer;width:64px;height:64px;box-shadow:0 2px 8px rgba(0,0,0,0.04);font-size:12px}
+.wb-controls button svg{ width:18px; height:18px; display:block }
+.wb-controls .wb-label{font-size:11px;color:#666}
+
+.desc{font-size:12px;color:#666;padding:6px;border-radius:6px;border:1px solid #eee;min-height:36px;outline:none}
+.desc[contenteditable="false"]{cursor:default;user-select:none;caret-color:transparent;background:transparent}
+
+.del-card{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;border:1px solid rgba(0,0,0,0.06);background:#fff;color:#c33;cursor:pointer}
+.del-card svg{width:14px;height:14px}
+
+.add-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed rgba(0,0,0,0.06);cursor:pointer;min-height:140px;padding:8px}
+.add-inner{font-size:30px;color:var(--gold);line-height:1}
+.add-caption{font-size:13px;color:#666;margin-top:6px}
+
+.admin-only{display:none}
+.admin-enabled .admin-only{display:flex}
+
+.mobile-hint{display:none;text-align:center;font-size:12px;color:#666;margin-bottom:8px}
+@media (max-width:700px){ .mobile-hint{display:block} .wb-controls button{width:72px;height:72px;padding:12px} }
+@media (max-width:500px){ .work-box{min-height:420px} }
+
+/* المودالات */
+.modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:9999}
+.modal-panel{background:var(--white);border-radius:10px;padding:14px;width:min(920px,96%);max-height:90vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,0.2)}
+.editor-top{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.editor-top button{padding:8px 10px;border-radius:6px;border:1px solid #eee;background:#fafafa;cursor:pointer}
+.editor-canvas{width:100%;background:#222;border-radius:6px;display:block;max-height:60vh}
+.editor-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.btn-primary{background:var(--gold);color:white;border:none;padding:8px 12px;border-radius:6px;cursor:pointer}
+.btn-ghost{background:#f3f3f3;border:none;padding:8px 12px;border-radius:6px;cursor:pointer}
+.btn-danger{background:#fff;color:#c33;border:1px solid #eee;padding:8px 12px;border-radius:6px;cursor:pointer}
+
+/* viewer image style */
+.viewer-img{max-width:100%;max-height:80vh;border-radius:8px;display:block;margin:0 auto}
+.viewer-actions{display:flex;justify-content:center;margin-top:10px;gap:8px}
+
+.admin-form{display:flex;flex-direction:column;gap:8px}
+.admin-form input[type="password"]{padding:8px;border-radius:6px;border:1px solid #ddd}
+.admin-form .row{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
+
+.pw-wrap{position:relative;display:flex;align-items:center}
+.pw-wrap input{padding-left:44px; width:100%} 
+.pw-toggle-btn{position:absolute;left:8px;top:50%;transform:translateY(-50%);border:none;background:transparent;cursor:pointer}
+
+.toast-wrap{position:fixed;left:16px;bottom:16px;z-index:10000;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.toast{background:#222;color:#fff;padding:10px 12px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,0.18);opacity:.98}
+.toast.success{background:#2b6a3b}
+.toast.error{background:#8d2b2b}
+
+.admin-logged{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.hidden{display:none}
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+</head>
+<body>
+
+<div class="page active" id="page1">
+  <div class="hero">
+    <h1>مرحباً بيكم بمتجر ننوس 🥹</h1>
+    <p>عالم موازي لتصويري بالواقع، هنا تلكون كلشي يخص تصويري وعروضي 💞</p>
+    <button class="enter-btn" onclick="goToStore()">دخول المتجر</button>
+  </div>
+</div>
+
+<div class="page" id="page2">
+  <div class="store-header">
+    <button class="back-btn" onclick="goHome()" aria-label="العودة">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4l8 8-8 8"></path></svg>
+    </button>
+    
+    <h2>Nnouse Store</h2>
+    <p style="font-size:13px;opacity:.7">Photography Works</p>
+    
+    <button id="admin-btn" class="admin-btn">دخول أدمن</button>
+
+    <div class="save-bar-container admin-only">
+      <button id="global-save-btn" class="publish-btn">
+        <span>حفظ ونشر التغييرات</span>
+        <span>💾</span>
+      </button>
+    </div>
+
+  </div>
+
+  <div class="mobile-hint">اضغط مطولاً واسحب لإعادة الترتيب (لوحة اللمس)</div>
+  <div class="grid" id="grid" aria-live="polite"></div>
+</div>
+
+<div id="img-editor" class="modal hidden">
+  <div class="modal-panel">
+    <div class="editor-top">
+      <button id="rotate-left">⟲</button>
+      <button id="rotate-right">⟳</button>
+      <button id="flip-h">⇋</button>
+      <label style="display:flex;align-items:center;gap:8px">تكبير <input id="zoom" type="range" min="0.5" max="2" step="0.05" value="1"></label>
+      <button id="crop-toggle">قص</button>
+      <button id="reset-edit">إعادة</button>
+      <button id="delete-image" class="btn-danger">حذف الصورة</button>
+    </div>
+    <div style="position:relative;">
+      <canvas id="editor-canvas" class="editor-canvas"></canvas>
+      <div id="crop-overlay" class="hidden"></div>
+    </div>
+    <div class="editor-actions">
+      <button id="cancel-edit" class="btn-ghost">إلغاء</button>
+      <button id="save-edit" class="btn-primary">موافق</button>
+    </div>
+  </div>
+</div>
+
+<div id="admin-modal" class="modal hidden">
+  <div class="modal-panel" style="width:360px;max-width:92%;">
+    <div id="admin-login-panel" class="admin-panel admin-form">
+      <h3 style="text-align:left;margin-bottom:6px">دخول الأدمن</h3>
+      <label>كلمة المرور:
+        <div class="pw-wrap">
+          <input id="admin-pass" type="password" placeholder="أدخل كلمة المرور">
+          <button type="button" class="pw-toggle-btn" data-target="admin-pass">👁</button>
+        </div>
+      </label>
+      <div class="row">
+        <button id="admin-login-btn" class="btn-primary">دخول</button>
+        <button id="admin-cancel-btn" class="btn-ghost">إلغاء</button>
+      </div>
+    </div>
+
+    <div id="admin-logged-panel" class="admin-panel admin-logged hidden">
+      <h3 style="text-align:left;margin-bottom:6px">وضع الأدمن مفعل</h3>
+      <div style="width:100%;display:flex;gap:8px;justify-content:flex-end">
+        <button id="admin-logout" class="btn-danger">تسجيل الخروج</button>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px">
+        <button id="admin-logged-cancel" class="btn-ghost">إغلاق</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="viewer" class="modal hidden">
+  <div class="modal-panel" style="text-align:center">
+    <img id="viewer-img" class="viewer-img" src="" alt="عرض الصورة">
+    <div class="viewer-actions">
+      <button id="viewer-close" class="btn-ghost">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+function goToStore(){document.getElementById("page1").classList.remove("active");document.getElementById("page2").classList.add("active")}
+function goHome(){document.getElementById("page2").classList.remove("active");document.getElementById("page1").classList.add("active")}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const STORAGE_KEY = 'nnouse_store';
+  const grid = document.getElementById('grid');
+  const adminBtn = document.getElementById('admin-btn');
+  const toastWrap = document.getElementById('toastWrap');
+
+  // إعدادات Firebase
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyA9VtZjv7ZlgHaNU8wgCYD_f7nqrzBHjOQ",
+    authDomain: "nnousestore.firebaseapp.com",
+    databaseURL: "https://nnousestore-default-rtdb.firebaseio.com",
+    projectId: "nnousestore",
+    storageBucket: "nnousestore.firebasestorage.app",
+    messagingSenderId: "149315172289",
+    appId: "1:149315172289:web:a1d891ab4c1b6e3511a140"
+  };
+
+  const adminModal = document.getElementById('admin-modal');
+  const loginPanel = document.getElementById('admin-login-panel');
+  const loggedPanel = document.getElementById('admin-logged-panel');
+  const adminPass = document.getElementById('admin-pass');
+  const adminLoginBtn = document.getElementById('admin-login-btn');
+  const adminCancelBtn = document.getElementById('admin-cancel-btn');
+  const adminLogoutBtn = document.getElementById('admin-logout');
+  const adminLoggedCancel = document.getElementById('admin-logged-cancel');
+  
+  // الزر الجديد للحفظ والنشر
+  const globalSaveBtn = document.getElementById('global-save-btn');
+
+  let saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+  saved.descriptions = saved.descriptions || [];
+  saved.images = saved.images || [];
+
+  const CLIENT_ID = localStorage.getItem('nnouse_client') || Math.random().toString(36).slice(2);
+  localStorage.setItem('nnouse_client', CLIENT_ID);
+  let lastRemoteUpdate = 0;
+  let firebaseEnabled = false;
+  let syncRef = null;
+
+  function showToast(text, type='info', ms=3500){
+    const t = document.createElement('div');
+    t.className = 'toast ' + (type || 'info');
+    t.textContent = text;
+    toastWrap.appendChild(t);
+    setTimeout(()=> t.style.opacity = '1', 10);
+    const timeout = setTimeout(()=> { t.style.opacity = '0'; t.addEventListener('transitionend', ()=> t.remove(), { once:true }); }, ms);
+  }
+
+  // Password toggle
+  document.querySelectorAll('.pw-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.target;
+      const input = document.getElementById(targetId);
+      if(input) input.type = input.type === 'password' ? 'text' : 'password';
+    });
+  });
+
+  const FIXED_ADMIN_PASSWORD = 'nnouseaiham';
+
+  function isAdmin() { return sessionStorage.getItem('nnouse_admin') === '1'; }
+  function setAdminMode(enable){
+    if (enable) {
+      sessionStorage.setItem('nnouse_admin','1');
+      document.body.classList.add('admin-enabled');
+      adminBtn.textContent = 'وضع الأدمن';
+    } else {
+      sessionStorage.removeItem('nnouse_admin');
+      document.body.classList.remove('admin-enabled');
+      adminBtn.textContent = 'دخول أدمن';
+    }
+  }
+
+  function initFirebase(){
+    try {
+      if (FIREBASE_CONFIG.apiKey && typeof firebase !== 'undefined') {
+        firebase.initializeApp(FIREBASE_CONFIG);
+        const db = firebase.database();
+        syncRef = db.ref('nnouse_store_shared_v1');
+        firebaseEnabled = true;
+
+        // استقبال التحديثات من الآخرين
+        syncRef.on('value', sn => {
+          const val = sn.val();
+          if (!val || !val.data) return;
+          if (val.clientId === CLIENT_ID) return; 
+          if ((val.updatedAt||0) <= lastRemoteUpdate) return;
+          
+          lastRemoteUpdate = val.updatedAt || 0;
+          saved = val.data;
+          saveLocalOnly();
+          renderCards();
+        });
+        
+        // جلب البيانات أول مرة
+        syncRef.once('value').then(sn => {
+          const val = sn.val();
+          if (val && val.data) {
+             saved = val.data;
+             saveLocalOnly();
+             renderCards();
+          }
+        });
+      }
+    } catch (e) { console.error(e); }
+  }
+
+  function saveLocalOnly(){ 
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved)); 
+  }
+
+  // دالة الحفظ (تعديل: تحفظ محلياً فقط)
+  function save(){
+    saveLocalOnly();
+    // تمت إزالة الحفظ التلقائي للسحابة من هنا
+    // الحفظ للسحابة يتم فقط عبر الزر الجديد
+  }
+
+  // منطق زر الحفظ والنشر
+  globalSaveBtn.addEventListener('click', () => {
+    if(!isAdmin()) return;
+    showToast('جاري نشر التغييرات...', 'info');
+    
+    if (firebaseEnabled && syncRef) {
+      const meta = { data: saved, updatedAt: Date.now(), clientId: CLIENT_ID };
+      syncRef.set(meta)
+        .then(() => {
+           lastRemoteUpdate = Date.now();
+           showToast('تم الحفظ والنشر بنجاح! ✅', 'success');
+        })
+        .catch((err) => {
+           showToast('فشل النشر: ' + err.message, 'error');
+        });
+    } else {
+      showToast('خطأ: الفايربيس غير متصل', 'error');
+    }
+  });
+
+  // Admin UI
+  function openAdminModal(){
+    loginPanel.classList.remove('hidden');
+    loggedPanel.classList.add('hidden');
+    adminPass.value = '';
+    adminModal.classList.remove('hidden');
+  }
+  function closeAdminModal(){ adminModal.classList.add('hidden'); }
+
+  adminBtn.addEventListener('click', () => { if (!isAdmin()) openAdminModal(); else { loginPanel.classList.add('hidden'); loggedPanel.classList.remove('hidden'); adminModal.classList.remove('hidden'); } });
+  adminCancelBtn.addEventListener('click', closeAdminModal);
+  adminLoggedCancel.addEventListener('click', closeAdminModal);
+
+  adminLoginBtn.addEventListener('click', () => {
+    if ((adminPass.value || '').trim() === FIXED_ADMIN_PASSWORD) {
+      setAdminMode(true); closeAdminModal(); renderCards(); showToast('أهلاً بك أيها الأدمن', 'success');
+    } else { showToast('كلمة المرور خاطئة','error'); }
+  });
+
+  adminLogoutBtn.addEventListener('click', () => {
+    if (!confirm('تسجيل الخروج؟')) return;
+    setAdminMode(false); closeAdminModal(); renderCards();
+  });
+
+  // Main App Logic
+  let drag = { srcIndex: null };
+  let editorState = { index: null, rotation: 0, flipX: false, zoom:1, cropMode:false, cropRect:null };
+
+  function ensureInitial() {
+    const needed = Math.max(8, saved.descriptions.length, saved.images.length);
+    for (let i = saved.descriptions.length; i < needed; i++) saved.descriptions[i] = 'وصف العمل / التاريخ';
+    for (let i = saved.images.length; i < needed; i++) saved.images[i] = null;
+    saveLocalOnly();
+  }
+
+  function hideAllControls(){ document.querySelectorAll('.card.show-controls').forEach(c => c.classList.remove('show-controls')); }
+
+  function renderCards(){
+    grid.innerHTML = '';
+    const count = Math.max( saved.descriptions.length, saved.images.length );
+    for (let i = 0; i < count; i++){
+      const imgData = saved.images[i];
+      const descText = saved.descriptions[i] ?? 'وصف العمل / التاريخ';
+
+      const card = document.createElement('div');
+      card.className = 'card';
+      if (isAdmin()) card.setAttribute('draggable','true');
+      card.setAttribute('data-index', String(i));
+      card.innerHTML = `
+        <div class="work-box ${imgData ? 'has-img' : ''}" data-index="${i}">
+          ${imgData ? `<img src="${imgData}" alt="صورة العمل">` : ''}
+          <div class="wb-controls admin-only">
+            <button class="img-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg><span class="wb-label">أضف</span></button>
+            <button class="edit-btn admin-only" ${imgData ? '' : 'hidden'}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"/><path d="M20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83"/></svg><span class="wb-label">تعديل</span></button>
+            <button class="del-card admin-only"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+          </div>
+          <input type="file" accept="image/*" class="img-input" data-index="${i}" hidden>
+        </div>
+        <div class="desc" ${isAdmin() ? 'contenteditable="true"' : 'contenteditable="false"'} data-index="${i}">${String(descText).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</div>
+      `;
+      grid.appendChild(card);
+    }
+
+    const addTile = document.createElement('div');
+    addTile.className = 'card add-tile admin-only';
+    addTile.innerHTML = `<div class="add-inner">+</div><div class="add-caption">إضافة قصاصة</div>`;
+    grid.appendChild(addTile);
+
+    if (isAdmin()) document.body.classList.add('admin-enabled'); else document.body.classList.remove('admin-enabled');
+    attachListeners();
+  }
+
+  function compressImageFile(file, maxW=1400, quality=0.8){
+    return new Promise((res, rej) => {
+      const img = new Image();
+      const reader = new FileReader();
+      reader.onload = () => { img.onload = () => {
+          let w = img.width, h = img.height;
+          const ratio = Math.min(1, maxW / w);
+          const c = document.createElement('canvas');
+          c.width = Math.round(w * ratio); c.height = Math.round(h * ratio);
+          const ctx = c.getContext('2d');
+          ctx.fillStyle = '#fff'; ctx.fillRect(0,0,c.width,c.height);
+          ctx.drawImage(img, 0, 0, c.width, c.height);
+          res(c.toDataURL(file.type === 'image/png' ? 'image/png' : 'image/jpeg', quality));
+      }; img.src = reader.result; };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function attachListeners(){
+    document.querySelectorAll('.desc').forEach((el) => {
+      if (el.isContentEditable) el.addEventListener('input', (e) => {
+         const i = Number(e.target.dataset.index);
+         saved.descriptions[i] = e.target.textContent;
+         save(); // حفظ محلي فقط
+      });
+    });
+
+    document.querySelectorAll('.card').forEach((card) => {
+      const idx = Number(card.dataset.index);
+      if (isAdmin() && !card.classList.contains('add-tile')) {
+        card.addEventListener('dragstart', (e) => { drag.srcIndex = idx; card.classList.add('dragging'); });
+        card.addEventListener('dragend', () => { drag.srcIndex = null; card.classList.remove('dragging'); });
+        card.addEventListener('dragover', (e) => { e.preventDefault(); });
+        card.addEventListener('drop', (e) => {
+          e.preventDefault();
+          const targetIdx = Number(card.dataset.index);
+          if (drag.srcIndex !== null && drag.srcIndex !== targetIdx) reorder(drag.srcIndex, targetIdx);
+        });
+      }
+
+      const box = card.querySelector('.work-box');
+      if (!box) return;
+      const idxBox = Number(box.dataset.index);
+      const input = box.querySelector('.img-input');
+      const addBtn = box.querySelector('.img-btn');
+      const editBtn = box.querySelector('.edit-btn');
+      const delBtn = box.querySelector('.del-card');
+
+      addBtn && addBtn.addEventListener('click', (e)=>{ e.stopPropagation(); if (isAdmin()) input.click(); });
+      editBtn && editBtn.addEventListener('click', (e)=>{ e.stopPropagation(); if (isAdmin()) { hideAllControls(); openEditor(saved.images[idxBox], idxBox); } });
+      delBtn && delBtn.addEventListener('click', (e)=>{ e.stopPropagation(); if (isAdmin() && confirm('حذف القصاصة؟')) { saved.images.splice(idxBox,1); saved.descriptions.splice(idxBox,1); save(); renderCards(); } });
+
+      if (input) input.addEventListener('change', async (ev) => {
+        if (!isAdmin()) return;
+        const file = ev.target.files && ev.target.files[0];
+        if (file) {
+          try {
+            const dataUrl = await compressImageFile(file, 1400, 0.8);
+            saved.images[idxBox] = dataUrl; saved.descriptions[idxBox] = saved.descriptions[idxBox] ?? 'وصف العمل / التاريخ';
+            save(); renderCards();
+          } catch(e){}
+        }
+        input.value = '';
+      });
+
+      card.addEventListener('click', (ev) => { if (isAdmin()) { hideAllControls(); card.classList.add('show-controls'); } ev.stopPropagation(); });
+      card.addEventListener('dblclick', () => { if(saved.images[idxBox]) openViewer(saved.images[idxBox]); });
+    });
+
+    document.querySelectorAll('.add-tile').forEach(tile => {
+      tile.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (isAdmin()) {
+          saved.descriptions.push('وصف العمل / التاريخ');
+          saved.images.push(null);
+          save(); renderCards();
+        }
+      });
+    });
+
+    document.addEventListener('click', (e) => { if (!e.target.closest('.card')) hideAllControls(); }, { capture: true });
+  }
+
+  function reorder(from, to){
+    if (from === to) return;
+    const desc = saved.descriptions.splice(from,1)[0];
+    const img = saved.images.splice(from,1)[0];
+    saved.descriptions.splice(to,0,desc);
+    saved.images.splice(to,0,img);
+    save(); renderCards();
+  }
+
+  ensureInitial();
+  if (isAdmin()) document.body.classList.add('admin-enabled');
+  renderCards();
+  initFirebase();
+
+  // محرر الصور
+  const modal = document.getElementById('img-editor');
+  const canvas = document.getElementById('editor-canvas');
+  const ctx = canvas.getContext('2d');
+  const zoomEl = document.getElementById('zoom');
+  const cropOverlay = document.getElementById('crop-overlay');
+  let img = new Image();
+
+  function openEditor(dataUrl, index) {
+    if (!isAdmin() || !dataUrl) return;
+    hideAllControls();
+    editorState = { index, rotation: 0, flipX: false, zoom: 1, cropMode: false, cropRect: null };
+    zoomEl.value = "1";
+    cropOverlay.classList.add('hidden'); modal.classList.remove('hidden');
+    img = new Image();
+    img.onload = () => {
+      const maxW = Math.min(900, window.innerWidth - 80);
+      const maxH = Math.min(600, window.innerHeight - 160);
+      let w = img.width, h = img.height;
+      const ratio = Math.min(maxW / w, maxH / h, 1);
+      canvas.width = Math.round(w * ratio); canvas.height = Math.round(h * ratio);
+      draw();
+    };
+    img.src = dataUrl;
+  }
+
+  function closeEditor(){ modal.classList.add('hidden'); }
+  function clearCanvas(){ ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+  function draw(){
+    clearCanvas();
+    ctx.save();
+    ctx.fillStyle = "#111"; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.translate(canvas.width/2, canvas.height/2);
+    ctx.rotate(editorState.rotation * Math.PI / 180);
+    ctx.scale((editorState.flipX ? -1 : 1) * editorState.zoom, editorState.zoom);
+    ctx.drawImage(img, -img.width/2, -img.height/2);
+    ctx.restore();
+    
+    if (editorState.cropRect && editorState.cropMode) {
+      cropOverlay.classList.remove('hidden');
+      const r = editorState.cropRect;
+      const rect = canvas.getBoundingClientRect();
+      cropOverlay.style.cssText = `position:absolute; left:${rect.left + window.scrollX + r.x}px; top:${rect.top + window.scrollY + r.y}px; width:${r.w}px; height:${r.h}px; border:2px dashed rgba(255,255,255,0.9); pointer-events:none;`;
+    } else cropOverlay.classList.add('hidden');
+  }
+
+  document.getElementById('rotate-left').onclick = ()=>{ editorState.rotation = (editorState.rotation - 90) % 360; draw(); };
+  document.getElementById('rotate-right').onclick = ()=>{ editorState.rotation = (editorState.rotation + 90) % 360; draw(); };
+  document.getElementById('flip-h').onclick = ()=>{ editorState.flipX = !editorState.flipX; draw(); };
+  zoomEl.oninput = (e)=>{ editorState.zoom = Number(e.target.value); draw(); };
+  document.getElementById('reset-edit').onclick = ()=>{ editorState.rotation = 0; editorState.flipX = false; editorState.zoom = 1; editorState.cropRect = null; zoomEl.value = "1"; draw(); };
+  document.getElementById('crop-toggle').onclick = ()=>{ editorState.cropMode = !editorState.cropMode; editorState.cropRect = null; cropOverlay.classList.toggle('hidden', !editorState.cropMode); };
+  
+  function canvasPoint(evt){
+    const rect = canvas.getBoundingClientRect();
+    return { x: Math.round(evt.clientX - rect.left), y: Math.round(evt.clientY - rect.top) };
+  }
+  canvas.addEventListener('mousedown', (e)=>{ if(editorState.cropMode){ editorState.dragging=true; editorState.dragStart=canvasPoint(e); editorState.cropRect={x:editorState.dragStart.x, y:editorState.dragStart.y, w:0, h:0}; draw(); } });
+  window.addEventListener('mousemove', (e)=>{ if(editorState.dragging && editorState.cropMode){ const p=canvasPoint(e); const sx=Math.min(editorState.dragStart.x,p.x); const sy=Math.min(editorState.dragStart.y,p.y); editorState.cropRect={x:Math.max(0,sx), y:Math.max(0,sy), w:Math.abs(p.x-editorState.dragStart.x), h:Math.abs(p.y-editorState.dragStart.y)}; draw(); } });
+  window.addEventListener('mouseup', ()=>{ editorState.dragging=false; });
+
+  document.getElementById('save-edit').onclick = ()=> {
+    if (!isAdmin() || editorState.index === null) return;
+    let finalData = null;
+    if (editorState.cropMode && editorState.cropRect) {
+      const r = editorState.cropRect;
+      const tmp = document.createElement('canvas'); tmp.width = r.w; tmp.height = r.h;
+      tmp.getContext('2d').drawImage(canvas, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h);
+      finalData = tmp.toDataURL('image/png');
+    } else finalData = canvas.toDataURL('image/png');
+    saved.images[editorState.index] = finalData; save(); renderCards(); closeEditor();
+  };
+
+  document.getElementById('delete-image').onclick = () => {
+    if (isAdmin() && editorState.index !== null && confirm('هل تريد حذف الصورة؟')) {
+      saved.images[editorState.index] = null; save(); renderCards(); closeEditor();
+    }
+  };
+
+  document.getElementById('cancel-edit').onclick = closeEditor;
+  
+  const viewer = document.getElementById('viewer');
+  function openViewer(src){ document.getElementById('viewer-img').src = src; viewer.classList.remove('hidden'); }
+  document.getElementById('viewer-close').onclick = ()=> viewer.classList.add('hidden');
+});
+</script>
+</body>
+</html> 
